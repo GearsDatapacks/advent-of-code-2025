@@ -1,74 +1,63 @@
-import gleam/bool
 import gleam/int
 import gleam/list
 import gleam/pair
 import gleam/string
 import util
 
-fn modulo(a: Int, b: Int) -> Int {
-  util.unwrap(int.modulo(a, b))
-}
-
 pub fn pt_1(input: String) -> Int {
   input
   |> string.split("\n")
-  |> list.fold(#(50, 0), fn(pair, instruction) {
-    let #(dial, count) = pair
-    process_instruction(instruction, dial, count)
-  })
-  |> pair.second
+  |> list.scan(50, process_instruction)
+  |> list.count(fn(x) { x == 0 })
 }
 
-fn process_instruction(
-  instruction: String,
-  dial: Int,
-  count: Int,
-) -> #(Int, Int) {
+fn process_instruction(dial: Int, instruction: String) -> Int {
   let increment = case instruction {
-    "L" <> n -> util.unwrap(int.parse(n))
-    "R" <> n -> -util.unwrap(int.parse(n))
+    "L" <> n -> -util.parse(n)
+    "R" <> n -> util.parse(n)
     _ -> panic
   }
 
-  let new_value = modulo(dial + increment, 100)
-
-  let count = case new_value {
-    0 -> count + 1
-    _ -> count
-  }
-
-  #(new_value, count)
+  { dial + increment } % 100
 }
 
 pub fn pt_2(input: String) -> Int {
   input
   |> string.split("\n")
-  |> list.fold(#(50, 0), fn(pair, instruction) {
-    let #(dial, count) = pair
-    process_each_click(instruction, dial, count)
-  })
+  |> list.map_fold(50, count_each_click)
   |> pair.second
+  |> int.sum
 }
 
-fn process_each_click(instruction: String, dial: Int, count: Int) -> #(Int, Int) {
-  let #(direction, increment) = case instruction {
-    "L" <> n -> #(1, util.unwrap(int.parse(n)))
-    "R" <> n -> #(-1, util.unwrap(int.parse(n)))
+fn count_each_click(dial: Int, instruction: String) -> #(Int, Int) {
+  let #(change, past) = case instruction {
+    "L" <> n -> {
+      let change = -util.parse(n)
+
+      let past = case dial {
+        0 -> -change / 100
+        _ -> { 100 - dial - change } / 100
+      }
+
+      #(change, past)
+    }
+    "R" <> n -> {
+      let change = util.parse(n)
+
+      let past = { dial + change } / 100
+      #(change, past)
+    }
     _ -> panic
   }
 
-  loop(dial, count, increment, direction)
+  let dial = modulo(dial + change, 100)
+  #(dial, past)
 }
 
-fn loop(dial: Int, count: Int, increment: Int, direction: Int) -> #(Int, Int) {
-  use <- bool.guard(increment == 0, #(dial, count))
-
-  let new_value = modulo(dial + direction, 100)
-
-  let count = case new_value {
-    0 -> count + 1
-    _ -> count
+fn modulo(dividend: Int, divisor: Int) -> Int {
+  let remainder = dividend % divisor
+  case dividend >= 0 {
+    False if remainder != 0 -> remainder + divisor
+    _ -> remainder
   }
-
-  loop(new_value, count, increment - 1, direction)
 }
