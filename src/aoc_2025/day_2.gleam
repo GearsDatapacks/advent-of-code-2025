@@ -71,29 +71,26 @@ fn is_invalid2(value: Int) -> Bool {
     let power =
       n |> int.to_float |> int.power(10, _) |> util.unwrap |> float.truncate
 
-    let parts = divide_number(value, power, [])
-    parts |> list.window_by_2 |> list.all(fn(pair) { pair.0 == pair.1 })
+    check_number(value, power)
   })
 }
 
-fn divide_number(value: Int, power: Int, out: List(Int)) -> List(Int) {
+fn check_number(value: Int, power: Int) -> Bool {
+  let first = value % power
+  let rest = value / power
+  check_number_loop(first, rest, power)
+}
+
+fn check_number_loop(first: Int, value: Int, power: Int) -> Bool {
   case value {
-    0 -> out
+    0 -> True
     _ -> {
       let part = value % power
       let rest = value / power
-      divide_number(rest, power, [part, ..out])
-    }
-  }
-}
-
-fn divide_string(string: String, n: Int, out: List(String)) -> List(String) {
-  case string {
-    "" -> out
-    _ -> {
-      let start = string.slice(string, 0, n)
-      let rest = string.drop_start(string, n)
-      divide_string(rest, n, [start, ..out])
+      case part == first {
+        True -> check_number_loop(first, rest, power)
+        False -> False
+      }
     }
   }
 }
